@@ -1,0 +1,12 @@
+{
+  "name": "kinan",
+  "interests": [
+    "systems",
+    "cryptograph",
+    "verification"
+  ],
+  "courses": [
+    {"name": "course1", "grade": 100},
+    {"name": "course1", "grade": 90}
+  ]
+}

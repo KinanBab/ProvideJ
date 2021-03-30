@@ -1,6 +1,8 @@
 package edu.brown.providej.processors;
 
 import edu.brown.providej.annotations.JsonData;
+import edu.brown.providej.annotations.MultiJsonData;
+import edu.brown.providej.annotations.enums.Visibility;
 import edu.brown.providej.modules.JsonSchema;
 
 import javax.annotation.processing.*;
@@ -16,7 +18,7 @@ import java.io.PrintWriter;
 import java.util.Hashtable;
 import java.util.Set;
 
-@SupportedAnnotationTypes("edu.brown.providej.annotations.JsonData")
+@SupportedAnnotationTypes({"edu.brown.providej.annotations.JsonData", "edu.brown.providej.annotations.MultiJsonData"})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 public class JsonProcessor extends AbstractProcessor {
     // State of the different JsonSchemas and annotations.
@@ -61,7 +63,7 @@ public class JsonProcessor extends AbstractProcessor {
                 }
 
                 try {
-                    this.provideType((PackageElement) e);
+                    this.provideTypes((PackageElement) e);
                 } catch (IOException io) {
                     this.messager.printMessage(Diagnostic.Kind.ERROR, io.getMessage(), e);
                     io.printStackTrace();
@@ -74,9 +76,22 @@ public class JsonProcessor extends AbstractProcessor {
 
     // Create a schema for the given package definition and associate JsonData annotation.
     // Store the schema in the state as well as generate a java class for it.
-    private void provideType(PackageElement packageElement) throws IOException {
-        JsonData jsonDataAnnotation = packageElement.getAnnotation(JsonData.class);
+    private void provideTypes(PackageElement packageElement) throws IOException {
         String packageName = packageElement.getQualifiedName().toString();
+
+        JsonData jsonDataAnnotation = packageElement.getAnnotation(JsonData.class);
+        if (jsonDataAnnotation != null) {
+            this.provideType(packageName, jsonDataAnnotation, packageElement);
+        }
+
+        MultiJsonData multiJsonDataAnnotation = packageElement.getAnnotation(MultiJsonData.class);
+        if (multiJsonDataAnnotation != null) {
+            for (JsonData nestedJsonDataAnnotation : multiJsonDataAnnotation.value()) {
+                this.provideType(packageName, nestedJsonDataAnnotation, packageElement);
+            }
+        }
+    }
+    private void provideType(String packageName, JsonData jsonDataAnnotation, PackageElement packageElement) throws IOException {
         String className = jsonDataAnnotation.className();
         String typeQualifiedName = packageName + "." + className;
 
@@ -88,24 +103,23 @@ public class JsonProcessor extends AbstractProcessor {
         }
 
         // Parse the json schema.
-        JsonSchema jsonSchema = JsonSchema.parseSchema();
+        JsonSchema jsonSchema = JsonSchema.parseSchema(jsonDataAnnotation.data());
         this.schemas.put(typeQualifiedName, jsonSchema);
 
         // Write the class file.
-        this.writeClassFile(packageName, className, jsonSchema);
+        this.writeClassFile(packageName, jsonDataAnnotation.visibility(), className, jsonSchema);
     }
 
     // Write a generated .java file containing the a provided type / class.
-    private void writeClassFile(String packageName, String className, JsonSchema jsonSchema) throws IOException {
+    private void writeClassFile(String packageName, Visibility classVisibility, String className, JsonSchema jsonSchema) throws IOException {
         // Write file.
         JavaFileObject genFile =
                 this.filer.createSourceFile(packageName + "." + className);
 
         PrintWriter out = new PrintWriter(genFile.openWriter());
-        out.println("package " + packageName + ";");
-        out.println("public class " + className + " {");
-        out.println(jsonSchema.toString());
-        out.println("}");
+        out.println("package " + packageName + ";\n\n");
+        out.println("import edu.brown.providej.types.*;\n\n");
+        out.println(jsonSchema.generateJavaCode(className, classVisibility));
         out.close();
     }
 }

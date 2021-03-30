@@ -1,0 +1,12 @@
+{
+  "name": "testing array edge cases",
+  "shouldBeEmpty": [],
+  "matrix": [
+    [0, 1, 2, 3],
+    [10, 11, 12, 13]
+  ],
+  "emptyMatrix": [ [], [], [] ],
+  "shouldBeEmptyObject": {},
+  "somethingThatIsNull": null,
+  "arrayOfNulls": [null, null]
+}

@@ -1,16 +1,16 @@
 package edu.brown.providej.modules.types;
 
-public class IntType extends AbstractType {
-    int value;
+public class DoubleType extends AbstractType {
+    double value;
 
-    public IntType(int value) {
-        super(AbstractType.Kind.INT);
+    public DoubleType(double value) {
+        super(AbstractType.Kind.DOUBLE);
         this.value = value;
     }
 
     @Override
     public String javaType() {
-        return "int";
+        return "double";
     }
 
     @Override

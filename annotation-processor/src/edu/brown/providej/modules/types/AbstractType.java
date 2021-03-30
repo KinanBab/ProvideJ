@@ -1,10 +1,10 @@
 package edu.brown.providej.modules.types;
 
-public abstract class FieldType {
+public abstract class AbstractType {
     // Use this (instead of instanceof) for specialization.
     private final Kind kind;
 
-    protected FieldType(Kind kind) {
+    protected AbstractType(Kind kind) {
         this.kind = kind;
     }
 
@@ -14,11 +14,17 @@ public abstract class FieldType {
     }
 
     // Types must be translated to java types with string names.
-    public abstract String toString();
+    public abstract String javaType();
+    public abstract String javaValue();
 
     // Supported types.
     public enum Kind {
         INT,
-        STRING
+        STRING,
+        OBJECT,
+        BOOLEAN,
+        DOUBLE,
+        ARRAY,
+        RUNTIME_TYPE
     }
 }

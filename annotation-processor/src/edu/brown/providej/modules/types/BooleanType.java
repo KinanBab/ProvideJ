@@ -1,16 +1,16 @@
 package edu.brown.providej.modules.types;
 
-public class IntType extends AbstractType {
-    int value;
+public class BooleanType extends AbstractType {
+    private boolean value;
 
-    public IntType(int value) {
-        super(AbstractType.Kind.INT);
+    public BooleanType(boolean value) {
+        super(AbstractType.Kind.BOOLEAN);
         this.value = value;
     }
 
     @Override
     public String javaType() {
-        return "int";
+        return "boolean";
     }
 
     @Override
