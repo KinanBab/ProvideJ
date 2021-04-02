@@ -1,11 +1,11 @@
 {
   "name": "nested naming conflicts",
   "program": {
-    "program": {
+    "program2": {
       "program": "test?"
     },
     "nestedObj": {
-      "program": 10
+      "program": { "x": 10 }
     },
     "nestedArray": [
       {"program": null},
