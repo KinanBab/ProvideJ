@@ -15,11 +15,11 @@ public abstract class AbstractType {
 
     // Types must be translated to java types with string names.
     public abstract String javaType();
-    public abstract String javaValue();
 
     // Supported types.
     public enum Kind {
         INT,
+        LONG,
         STRING,
         OBJECT,
         BOOLEAN,

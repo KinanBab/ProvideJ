@@ -1,5 +1,7 @@
 package edu.brown;
 
+import edu.brown.providej.runtime.ProvideJUtil;
+
 public class Main {
     public static void main(String[] args) {
         // samples/data1.json
@@ -30,8 +32,12 @@ public class Main {
             System.out.println("\t" + interest);
         }
         System.out.println("courses:");
-        for (Json3.Courses course : data3.getCourses()) {
+        for (Json3.Json3__Courses course : data3.getCourses()) {
             System.out.println("\tname: " + course.getName() + ", grade: " + course.getGrade());
         }
+
+        // Print all JSONs.
+        System.out.println("");
+        System.out.println(ProvideJUtil.toJSON(Json3.DATA));
     }
 }

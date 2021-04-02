@@ -1,18 +1,12 @@
 package edu.brown.providej.modules.types;
 
 public class LongType extends AbstractType {
-    long value;
-
-    public LongType(long value) {
-        super(AbstractType.Kind.INT);
-        this.value = value;
+    public LongType() {
+        super(AbstractType.Kind.LONG);
     }
 
     @Override
     public String javaType() {
         return "long";
     }
-
-    @Override
-    public String javaValue() { return String.valueOf(this.value); }
 }

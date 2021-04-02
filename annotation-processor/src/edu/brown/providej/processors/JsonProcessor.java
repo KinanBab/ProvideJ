@@ -3,6 +3,7 @@ package edu.brown.providej.processors;
 import edu.brown.providej.annotations.JsonData;
 import edu.brown.providej.annotations.MultiJsonData;
 import edu.brown.providej.annotations.enums.Visibility;
+import edu.brown.providej.codegen.JsonSchemaGenerator;
 import edu.brown.providej.modules.JsonSchema;
 
 import javax.annotation.processing.*;
@@ -103,23 +104,22 @@ public class JsonProcessor extends AbstractProcessor {
         }
 
         // Parse the json schema.
-        JsonSchema jsonSchema = JsonSchema.parseSchema(jsonDataAnnotation.data());
+        JsonSchema jsonSchema = JsonSchema.parseSchema(className, jsonDataAnnotation.data());
         this.schemas.put(typeQualifiedName, jsonSchema);
 
         // Write the class file.
-        this.writeClassFile(packageName, jsonDataAnnotation.visibility(), className, jsonSchema);
+        this.writeClassFile(packageName, jsonDataAnnotation.visibility(), jsonSchema);
     }
 
     // Write a generated .java file containing the a provided type / class.
-    private void writeClassFile(String packageName, Visibility classVisibility, String className, JsonSchema jsonSchema) throws IOException {
+    private void writeClassFile(String packageName, Visibility classVisibility, JsonSchema jsonSchema) throws IOException {
         // Write file.
         JavaFileObject genFile =
-                this.filer.createSourceFile(packageName + "." + className);
+                this.filer.createSourceFile(packageName + "." + jsonSchema.getClassName());
 
+        JsonSchemaGenerator generator = new JsonSchemaGenerator(jsonSchema);
         PrintWriter out = new PrintWriter(genFile.openWriter());
-        out.println("package " + packageName + ";\n\n");
-        out.println("import edu.brown.providej.types.*;\n\n");
-        out.println(jsonSchema.generateJavaCode(className, classVisibility));
+        out.println(generator.generateJavaClass(packageName, classVisibility));
         out.close();
     }
 }

@@ -19,18 +19,19 @@ public class RuntimeType extends AbstractType {
         }
     }
 
-    RuntimeType.Types type;
+    Types type;
 
-    public RuntimeType(RuntimeType.Types type) {
+    public RuntimeType(Types type) {
         super(AbstractType.Kind.RUNTIME_TYPE);
         this.type = type;
+    }
+
+    public Types getRuntimeType() {
+        return type;
     }
 
     @Override
     public String javaType() {
         return this.type.toString();
     }
-
-    @Override
-    public String javaValue() { return "new " + this.type + "()"; }
 }
