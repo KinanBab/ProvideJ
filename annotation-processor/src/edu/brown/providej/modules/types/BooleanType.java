@@ -9,4 +9,9 @@ public class BooleanType extends AbstractType {
     public String javaType() {
         return "boolean";
     }
+
+    @Override
+    public String javaRefType() {
+        return "Boolean";
+    }
 }

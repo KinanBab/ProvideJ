@@ -1,39 +1,71 @@
 package edu.brown.providej.modules.types;
 
-import edu.brown.providej.modules.JsonSchema;
+import edu.brown.providej.modules.values.AbstractValue;
+import edu.brown.providej.modules.values.ArrayValue;
+import edu.brown.providej.runtime.types.Nullable;
 
 public class ArrayType extends AbstractType {
     private AbstractType dataType;
-    private AbstractType[] concreteTypes;
-    private int index;
 
-    public ArrayType(int size) {
+    public ArrayType() {
         super(AbstractType.Kind.ARRAY);
-        this.index = 0;
-        this.concreteTypes = new AbstractType[size];
         this.dataType = null;
     }
 
     public void addType(AbstractType type) {
-        if (this.index == 0) {
+        if (this.dataType == null) {
             this.dataType = type;
         } else {
-            // TODO(babman): unify types.
+            this.dataType = AbstractType.unify(this.dataType, type);
         }
-        this.concreteTypes[this.index] = type;
-        this.index++;
     }
 
     public AbstractType getDataType() {
         return this.dataType;
     }
 
-    public int size() {
-        return this.concreteTypes.length;
+    @Override
+    public String toString() {
+        return "[" + this.dataType.toString() + "]";
     }
 
     @Override
     public String javaType() {
         return this.dataType.javaType() + "[]";
+    }
+
+    public String javaTypeConstructor() {
+        if (this.dataType.getKind() == AbstractType.Kind.NULLABLE) {
+            return "Nullable[]";
+        } else {
+            return this.javaType();
+        }
+    }
+
+    @Override
+    public boolean equals(AbstractType other) {
+        if (other.getKind() == AbstractType.Kind.ARRAY) {
+            return this.dataType.equals(((ArrayType) other).dataType);
+        }
+        return false;
+    }
+
+    public static AbstractType unify(ArrayType t1, ArrayType t2) {
+        ArrayType unified = new ArrayType();
+        unified.addType(AbstractType.unify(t1, t2));
+        return unified;
+    }
+
+    @Override
+    public AbstractValue transform(AbstractValue value) {
+        if (value.getType().getKind() != AbstractType.Kind.ARRAY) {
+            throw new IllegalArgumentException("Cannot transform " + value.getClass().getName() + " to " + this);
+        }
+
+        ArrayValue arrayValue = (ArrayValue) value;
+        if (arrayValue.getType().equals(this)) {
+            return value;
+        }
+        return arrayValue.conformToUnifiedType(this);
     }
 }

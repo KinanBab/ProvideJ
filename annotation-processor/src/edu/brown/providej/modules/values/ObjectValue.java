@@ -26,6 +26,10 @@ public class ObjectValue extends AbstractValue {
         return this.values.get(fieldName);
     }
 
+    public TreeMap<String, AbstractValue> getValues() {
+        return new TreeMap<>(values);
+    }
+
     @Override
     public String javaValue() {
         StringBuilder builder = new StringBuilder();

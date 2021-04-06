@@ -1,6 +1,5 @@
 package edu.brown.providej.modules.values;
 
-import edu.brown.providej.modules.types.ObjectType;
 import edu.brown.providej.modules.types.RuntimeType;
 
 public class RuntimeValue extends AbstractValue {

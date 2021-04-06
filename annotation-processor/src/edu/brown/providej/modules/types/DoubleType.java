@@ -9,4 +9,9 @@ public class DoubleType extends AbstractType {
     public String javaType() {
         return "double";
     }
+
+    @Override
+    public String javaRefType() {
+        return "Double";
+    }
 }

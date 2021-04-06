@@ -6,6 +6,8 @@ import edu.brown.providej.modules.types.AbstractType;
 import edu.brown.providej.modules.types.ArrayType;
 import edu.brown.providej.modules.types.ObjectType;
 
+import java.io.IOException;
+
 public class JsonSchemaGenerator {
     private final JsonSchema schema;
 

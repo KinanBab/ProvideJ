@@ -9,4 +9,9 @@ public class LongType extends AbstractType {
     public String javaType() {
         return "long";
     }
+
+    @Override
+    public String javaRefType() {
+        return "Long";
+    }
 }

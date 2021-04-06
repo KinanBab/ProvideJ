@@ -100,6 +100,7 @@ public class ObjectTypeGenerator {
                     builder.append("builder.append(this." + e.getKey() + ".toString());\n");
                     break;
                 case ARRAY:
+                case OR:
                     builder.append("builder.append(ProvideJUtil.toJSON(this." + e.getKey() + "));\n");
                     break;
                 case RUNTIME_TYPE:
@@ -123,6 +124,7 @@ public class ObjectTypeGenerator {
                 case LONG:
                 case INT:
                 case BOOLEAN:
+                case NULLABLE:
                     builder.append("builder.append(this." + e.getKey() + " + \"\");\n");
                     break;
             }

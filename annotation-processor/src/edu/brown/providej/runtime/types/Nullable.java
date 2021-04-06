@@ -1,5 +1,7 @@
 package edu.brown.providej.runtime.types;
 
+import edu.brown.providej.runtime.ProvideJUtil;
+
 public class Nullable<T> {
     T value;
 
@@ -20,5 +22,13 @@ public class Nullable<T> {
             throw new NullPointerException("Nullable value accessed while null!");
         }
         return this.value;
+    }
+
+    @Override
+    public String toString() {
+        if (this.value == null) {
+            return "null";
+        }
+        return ProvideJUtil.toJSON(this.value);
     }
 }

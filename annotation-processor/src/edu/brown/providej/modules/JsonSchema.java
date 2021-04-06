@@ -4,26 +4,41 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.sun.source.tree.Tree;
-import edu.brown.providej.annotations.enums.Visibility;
 import edu.brown.providej.modules.types.*;
 import edu.brown.providej.modules.values.*;
 
+import javax.annotation.processing.Messager;
+import javax.tools.Diagnostic;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.Array;
 import java.util.*;
 
 public class JsonSchema {
+    private static class ClassNameComparator implements Comparator<ObjectType> {
+        @Override
+        public int compare(ObjectType t1, ObjectType t2) {
+            String[] c1 = t1.getQualifiedName().split("__");
+            String[] c2 = t2.getQualifiedName().split("__");
+            int min = Math.min(c1.length, c2.length);
+            for (int i = 0; i < min; i++) {
+                int r = c1[i].compareTo(c2[i]);
+                if (r != 0) {
+                    return r;
+                }
+            }
+            return c1.length - c2.length;
+        }
+    }
+
+    private Messager messager;
     private String className;
     private AbstractValue rootValue;
-    private TreeSet<ObjectType> nestedTypes;
 
     // Private constructor, can only construct using static .parseSchema()
-    private JsonSchema(String className) {
+    private JsonSchema(Messager messager, String className) {
+        this.messager = messager;
         this.className = className;
         this.rootValue = null;
-        this.nestedTypes = new TreeSet<>();
     }
 
     public String getClassName() {
@@ -35,109 +50,161 @@ public class JsonSchema {
     }
 
     public TreeSet<ObjectType> getNestedTypes() {
-        return this.nestedTypes;
+        TreeSet<ObjectType> nestedTypes = new TreeSet<>(new ClassNameComparator());
+
+        // Simulate recursion with a queue.
+        boolean notRoot = false;
+        LinkedList<AbstractType> queue = new LinkedList<>();
+        queue.add(this.rootValue.getType());
+        while (!queue.isEmpty()) {
+            AbstractType type = queue.pop();
+            switch (type.getKind()) {
+                case ARRAY:
+                    queue.add(((ArrayType) type).getDataType());
+                    continue;
+                case OBJECT:
+                    ObjectType objectType = (ObjectType) type;
+                    if (notRoot) {
+                        nestedTypes.add(objectType);
+                    }
+                    notRoot = true;
+                    for (Map.Entry<String, AbstractType> k : objectType) {
+                        queue.add(k.getValue());
+                    }
+                    continue;
+                case OR:
+                    notRoot = true;
+                    OrType orType = (OrType) type;
+                    for (AbstractType option : orType.getOptions()) {
+                        queue.add(option);
+                    }
+                    continue;
+                case NULLABLE:
+                    queue.add(((NullableType) type).getDataType());
+                    continue;
+            }
+        }
+
+        return nestedTypes;
     }
 
+    private void qualifyNames() {
+        this.qualifyNames(this.rootValue, new String[]{this.className});
+    }
+
+    public void qualifyNames(AbstractValue value, String[] context) {
+        this.qualifyNames(value.getType(), context);  // Qualify names in the type.
+        switch (value.getType().getKind()) {  // Qualify names under the value.
+            case ARRAY:
+                ArrayValue arrayValue = (ArrayValue) value;
+                for (AbstractValue v : arrayValue) {
+                    this.qualifyNames(v, context);
+                }
+                break;
+            case OBJECT:
+                ObjectType objectType = (ObjectType) value.getType();
+                objectType.setContext(context);
+                for (Map.Entry<String, AbstractType> e : objectType) {
+                    String[] newContext = Arrays.copyOf(context, context.length + 1);
+                    newContext[context.length] = e.getKey();
+                    ObjectValue objectValue = (ObjectValue) value;
+                    this.qualifyNames(objectValue.getValue(e.getKey()), newContext);
+                }
+                break;
+            case OR:
+                AbstractValue nestedValue = ((OrValue) value).getValue();
+                String[] newContext = Arrays.copyOf(context, context.length);
+                if (nestedValue.getType().getKind() == AbstractType.Kind.ARRAY) {
+                    newContext[newContext.length - 1] += "Arr";
+                }
+                if (nestedValue.getType().getKind() == AbstractType.Kind.OBJECT) {
+                    newContext[newContext.length - 1] += "Obj";
+                }
+                this.qualifyNames(nestedValue, newContext);
+                break;
+            case NULLABLE:
+                NullableValue nullableValue = (NullableValue) value;
+                if (nullableValue.hasValue()) {
+                    this.qualifyNames(nullableValue.getValue(), context);
+                }
+                break;
+        }
+    }
+    public void qualifyNames(AbstractType type, String[] context) {
+        switch (type.getKind()) {
+            case ARRAY:
+                ArrayType arrayType = (ArrayType) type;
+                this.qualifyNames(arrayType.getDataType(), context);
+                break;
+            case OBJECT:
+                ObjectType objectType = (ObjectType) type;
+                objectType.setContext(context);
+                for (Map.Entry<String, AbstractType> e : objectType) {
+                    String[] newContext = Arrays.copyOf(context, context.length + 1);
+                    newContext[context.length] = e.getKey();
+                    qualifyNames(e.getValue(), newContext);
+                }
+                break;
+            case OR:
+                OrType orType = (OrType) type;
+                for (AbstractType option : orType.getOptions()) {
+                    String[] newContext = Arrays.copyOf(context, context.length);
+                    if (option.getKind() == AbstractType.Kind.ARRAY) {
+                        newContext[newContext.length - 1] += "Arr";
+                    }
+                    if (option.getKind() == AbstractType.Kind.OBJECT) {
+                        newContext[newContext.length - 1] += "Obj";
+                    }
+                    this.qualifyNames(option, newContext);
+                }
+                break;
+            case NULLABLE:
+                NullableType nullableType = (NullableType) type;
+                this.qualifyNames(nullableType.getDataType(), context);
+                break;
+        }
+    }
+
+
     // Create schema for the given JSON file.
-    public static JsonSchema parseSchema(String className, String jsonFilePath) throws IOException {
+    public static JsonSchema parseSchema(Messager messager, String className, String jsonFilePath) throws IOException {
         File jsonFile = new File(jsonFilePath);
         JsonNode root = new ObjectMapper().readTree(jsonFile);
         // Create a schema.
-        JsonSchema schema = new JsonSchema(className);
-        // Populate all needed types.
-        Map.Entry<AbstractType, AbstractValue> entry = schema.parseTypeAndValue(root, new String[]{className});
-        // Store root value.
-        schema.rootValue = entry.getValue();
+        JsonSchema schema = new JsonSchema(messager, className);
+        // Populate all needed types, and parse the root value.
+        schema.rootValue = schema.parseJsonValue(root);
+        schema.qualifyNames();
         // Return schema.
         return schema;
     }
 
-    private Map.Entry<AbstractType, AbstractValue> parseTypeAndValue(JsonNode node, String[] context) throws IOException {
-        AbstractValue parsedValue = null;
+    private AbstractValue parseJsonValue(JsonNode node) throws IOException {
         switch (node.getNodeType()) {
             case OBJECT:
-                if (!node.fields().hasNext()) {
-                    RuntimeType type = new RuntimeType(RuntimeType.Types.EMPTY_OBJECT);
-                    parsedValue = new RuntimeValue(type);
-                } else {
-                    ObjectType type = new ObjectType(context);
-                    ObjectValue value = new ObjectValue(type);
-                    for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext();) {
-                        // Iterate over fields inside this current JSON object.
-                        Map.Entry<String, JsonNode> e = it.next();
-                        String childClassName = ObjectType.Case(e.getKey());
-                        JsonNode child = e.getValue();
-
-                        // Add the field being iterated on to the type context.
-                        String[] newContext = Arrays.copyOf(context, context.length + 1);
-                        newContext[context.length] = childClassName;
-
-                        // Parse the type and value of the field, add them this JSON object.
-                        Map.Entry<AbstractType, AbstractValue> parsed = this.parseTypeAndValue(child, newContext);
-                        type.addField(e.getKey(), parsed.getKey());
-                        value.addValue(e.getKey(), parsed.getValue());
-                    }
-
-                    // Add nested type.
-                    if (context.length > 1) {
-                        this.nestedTypes.add(type);
-                    }
-                    parsedValue = value;
-                }
-                break;
+                return this.parseJsonObject((ObjectNode) node);
 
             case ARRAY:
-                if (node.size() == 0) {
-                    RuntimeType type = new RuntimeType(RuntimeType.Types.EMPTY_ARRAY);
-                    parsedValue = new RuntimeValue(type);
-                } else {
-                    ArrayType type = new ArrayType(node.size());
-                    ArrayValue value = new ArrayValue(type);
-                    for (int i = 0; i < node.size(); i++) {
-                        // Iterate over elements in this JSON array.
-                        JsonNode child = node.get(i);
-
-                        // Parse the type and value of the given element.
-                        Map.Entry<AbstractType, AbstractValue> parsed = this.parseTypeAndValue(child, context);
-
-                        // Add the type and value of element to this JSON array.
-                        type.addType(parsed.getKey());
-                        value.addValue(parsed.getValue());
-                    }
-                    // Add nested type.
-                    if (context.length > 1) {
-                        AbstractType dataType = type.getDataType();
-                        if (dataType.getKind() == AbstractType.Kind.OBJECT) {
-                            this.nestedTypes.remove(dataType);
-                            this.nestedTypes.add((ObjectType) dataType);
-                        }
-                    }
-                    parsedValue = value;
-                }
-                break;
+                return this.parseJsonArray((ArrayNode) node);
 
             case NUMBER:
                 // Determine precision of the numeric value.
                 if (node.isDouble() && !node.isLong() && !node.isInt()) {
-                    parsedValue = new DoubleValue(node.doubleValue());
+                    return new DoubleValue(node.doubleValue());
                 } else if (node.canConvertToInt()) {
-                    parsedValue = new IntValue(node.intValue());
+                    return new IntValue(node.intValue());
                 } else {
-                    parsedValue = new LongValue(node.longValue());
+                    return new LongValue(node.longValue());
                 }
-                break;
 
             case BOOLEAN:
-                parsedValue = new BooleanValue(node.booleanValue());
-                break;
+                return new BooleanValue(node.booleanValue());
 
             case STRING:
-                parsedValue = new StringValue(node.textValue());
-                break;
+                return new StringValue(node.textValue());
 
             case NULL:
-                parsedValue = new RuntimeValue(new RuntimeType(RuntimeType.Types.NULL));
-                break;
+                return new RuntimeValue(new RuntimeType(RuntimeType.Types.NULL));
 
             case BINARY:
             case MISSING:
@@ -145,7 +212,54 @@ public class JsonSchema {
             default:
                 throw new IOException("Cannot parse JSON!");
         }
+    }
 
-        return new AbstractMap.SimpleEntry<>(parsedValue.getType(), parsedValue);
+    // Helper function for parsing a JSON object.
+    private AbstractValue parseJsonObject(ObjectNode objectNode) throws IOException {
+        // Special case: object is empty.
+        if (!objectNode.fields().hasNext()) {
+            return new RuntimeValue(new RuntimeType(RuntimeType.Types.EMPTY_OBJECT));
+        }
+
+        ObjectType type = new ObjectType();
+        ObjectValue value = new ObjectValue(type);
+        for (Iterator<Map.Entry<String, JsonNode>> it = objectNode.fields(); it.hasNext();) {
+            // Iterate over fields inside this current JSON object.
+            Map.Entry<String, JsonNode> e = it.next();
+            String childClassName = ObjectType.Case(e.getKey());
+            JsonNode child = e.getValue();
+
+            // Parse the type and value of the field, add them this JSON object.
+            AbstractValue parsed = this.parseJsonValue(child);
+            type.addField(e.getKey(), parsed.getType());
+            value.addValue(e.getKey(), parsed);
+        }
+
+        return value;
+    }
+
+    // Helper function for parsing a JSON array.
+    private AbstractValue parseJsonArray(ArrayNode arrayNode) throws IOException {
+        // Special case: array is empty.
+        if (arrayNode.size() == 0) {
+            return new RuntimeValue(new RuntimeType(RuntimeType.Types.EMPTY_ARRAY));
+        }
+
+        ArrayType type = new ArrayType();
+        ArrayValue value = new ArrayValue(type, arrayNode.size());
+        for (int i = 0; i < arrayNode.size(); i++) {
+            // Iterate over elements in this JSON array.
+            JsonNode child = arrayNode.get(i);
+
+            // Parse the type and value of the given element.
+            AbstractValue parsed = this.parseJsonValue(child);
+
+            // Add the type and value of element to this JSON array.
+            type.addType(parsed.getType());
+            value.addValue(parsed);
+        }
+
+        value = value.conformToUnifiedType(type);
+        return value;
     }
 }

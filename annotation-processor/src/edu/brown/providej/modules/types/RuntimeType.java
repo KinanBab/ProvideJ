@@ -34,4 +34,24 @@ public class RuntimeType extends AbstractType {
     public String javaType() {
         return this.type.toString();
     }
+
+    @Override
+    public boolean equals(AbstractType other) {
+        if (other.getKind() == AbstractType.Kind.RUNTIME_TYPE) {
+            return this.type.equals(((RuntimeType) other).type);
+        }
+        return false;
+    }
+
+    public static AbstractType unify(RuntimeType t1, AbstractType t2) {
+        switch (t1.getRuntimeType()) {
+            case NULL:
+                return new NullableType(t2);
+            case EMPTY_ARRAY:
+            case EMPTY_OBJECT:
+                return new OrType(t1, t2);
+            default:
+                throw new UnsupportedOperationException("RuntimeType.unify");
+        }
+    }
 }

@@ -104,7 +104,7 @@ public class JsonProcessor extends AbstractProcessor {
         }
 
         // Parse the json schema.
-        JsonSchema jsonSchema = JsonSchema.parseSchema(className, jsonDataAnnotation.data());
+        JsonSchema jsonSchema = JsonSchema.parseSchema(this.messager, className, jsonDataAnnotation.data());
         this.schemas.put(typeQualifiedName, jsonSchema);
 
         // Write the class file.
