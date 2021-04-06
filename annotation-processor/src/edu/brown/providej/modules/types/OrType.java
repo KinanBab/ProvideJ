@@ -6,10 +6,10 @@ import edu.brown.providej.modules.values.OrValue;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Map;
 
 public class OrType extends AbstractType {
     private ArrayList<AbstractType> options;
+    private String[] context;
 
     public OrType(AbstractType t1, AbstractType t2) {
         super(AbstractType.Kind.OR);
@@ -21,7 +21,19 @@ public class OrType extends AbstractType {
         }
     }
 
-    // Initialzation: OrType are always flat: they never have OrType direct children.
+    // Getters and setters..
+    public void setContext(String[] context) {
+        this.context = Arrays.copyOf(context, context.length);
+    }
+
+    public String getQualifiedName() {
+        if (this.context == null) {
+            return "null";
+        }
+        return String.join("__", this.context);
+    }
+
+    // Initialization: OrType are always flat: they never have OrType direct children.
     private int findIndexOfKind(AbstractType.Kind kind) {
         for (int i = 0; i < this.options.size(); i++) {
             if (this.options.get(i).getKind() == kind) {
@@ -96,15 +108,7 @@ public class OrType extends AbstractType {
 
     @Override
     public String javaType() {
-        StringBuilder builder = new StringBuilder();
-        builder.append("Object/*<");
-        for (int i = 0; i < this.options.size(); i++) {
-            builder.append(this.options.get(i).javaRefType());
-            builder.append(", ");
-        }
-        builder.setLength(builder.length() - 2);
-        builder.append(">*/");
-        return builder.toString();
+        return this.getQualifiedName();
     }
 
     @Override

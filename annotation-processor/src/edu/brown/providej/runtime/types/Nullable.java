@@ -3,7 +3,7 @@ package edu.brown.providej.runtime.types;
 import edu.brown.providej.runtime.ProvideJUtil;
 
 public class Nullable<T> {
-    T value;
+    private T value;
 
     public Nullable() {
         this.value = null;
@@ -13,11 +13,11 @@ public class Nullable<T> {
         this.value = value;
     }
 
-    boolean isNull() {
+    public boolean isNull() {
         return this.value == null;
     }
 
-    T getValue() {
+    public T getValue() {
         if (this.isNull()) {
             throw new NullPointerException("Nullable value accessed while null!");
         }

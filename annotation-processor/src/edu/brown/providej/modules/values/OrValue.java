@@ -21,6 +21,6 @@ public class OrValue extends AbstractValue {
 
     @Override
     public String javaValue() {
-        return this.value.javaValue();
+        return "new " + this.type.javaType() + "(" + this.value.javaValue() + ")";
     }
 }

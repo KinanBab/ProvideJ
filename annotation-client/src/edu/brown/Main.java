@@ -1,6 +1,7 @@
 package edu.brown;
 
 import edu.brown.providej.runtime.ProvideJUtil;
+import edu.brown.providej.runtime.types.Null;
 import edu.brown.providej.runtime.types.Nullable;
 
 public class Main {
@@ -33,9 +34,22 @@ public class Main {
             System.out.println("\t" + interest);
         }
         System.out.println("courses:");
-        for (Json3.Json3__courses course : data3.getCourses()) {
+        for (Json3.Json3__Courses course : data3.getCourses()) {
             System.out.println("\tname: " + course.getName() + ", grade: " + course.getGrade());
         }
+
+        // samples/data10.json
+        Json10 data10 = Json10.DATA;
+        System.out.println();
+        Nullable<String> nullable0 = data10.getCourses()[0].getName().getNote();
+        Nullable<String> nullable1 = data10.getCourses()[1].getName().getNote();
+        System.out.println("Note 0: " + nullable0.getValue());
+        System.out.println("Note 1 null: " + nullable1.isNull());
+        int i = 0;
+        for (Json10.Json10__Simpleor__OrType element : data10.getSimpleor()) {
+            System.out.println("Element[" + (i++) + "] = " + element.getType());
+        }
+
 
         // Print all JSONs.
         System.out.println("");
@@ -49,5 +63,6 @@ public class Main {
         System.out.println(ProvideJUtil.toJSON(Json8.DATA));
         System.out.println(ProvideJUtil.toJSON(Json9.DATA));
         System.out.println(ProvideJUtil.toJSON(Json10.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json11.DATA));
     }
 }

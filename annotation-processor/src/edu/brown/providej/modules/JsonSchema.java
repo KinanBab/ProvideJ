@@ -14,9 +14,25 @@ import java.io.IOException;
 import java.util.*;
 
 public class JsonSchema {
-    private static class ClassNameComparator implements Comparator<ObjectType> {
+    private static class ObjectTypeComparator implements Comparator<ObjectType> {
         @Override
         public int compare(ObjectType t1, ObjectType t2) {
+            String[] c1 = t1.getQualifiedName().split("__");
+            String[] c2 = t2.getQualifiedName().split("__");
+            int min = Math.min(c1.length, c2.length);
+            for (int i = 0; i < min; i++) {
+                int r = c1[i].compareTo(c2[i]);
+                if (r != 0) {
+                    return r;
+                }
+            }
+            return c1.length - c2.length;
+        }
+    }
+
+    private static class OrTypeComparator implements Comparator<OrType> {
+        @Override
+        public int compare(OrType t1, OrType t2) {
             String[] c1 = t1.getQualifiedName().split("__");
             String[] c2 = t2.getQualifiedName().split("__");
             int min = Math.min(c1.length, c2.length);
@@ -50,7 +66,7 @@ public class JsonSchema {
     }
 
     public TreeSet<ObjectType> getNestedTypes() {
-        TreeSet<ObjectType> nestedTypes = new TreeSet<>(new ClassNameComparator());
+        TreeSet<ObjectType> nestedTypes = new TreeSet<>(new ObjectTypeComparator());
 
         // Simulate recursion with a queue.
         boolean notRoot = false;
@@ -88,6 +104,40 @@ public class JsonSchema {
         return nestedTypes;
     }
 
+    public TreeSet<OrType> getNestedOrTypes() {
+        TreeSet<OrType> nestedTypes = new TreeSet<>(new OrTypeComparator());
+
+        // Simulate recursion with a queue.
+        LinkedList<AbstractType> queue = new LinkedList<>();
+        queue.add(this.rootValue.getType());
+        while (!queue.isEmpty()) {
+            AbstractType type = queue.pop();
+            switch (type.getKind()) {
+                case ARRAY:
+                    queue.add(((ArrayType) type).getDataType());
+                    continue;
+                case OBJECT:
+                    ObjectType objectType = (ObjectType) type;
+                    for (Map.Entry<String, AbstractType> k : objectType) {
+                        queue.add(k.getValue());
+                    }
+                    continue;
+                case OR:
+                    OrType orType = (OrType) type;
+                    nestedTypes.add(orType);
+                    for (AbstractType option : orType.getOptions()) {
+                        queue.add(option);
+                    }
+                    continue;
+                case NULLABLE:
+                    queue.add(((NullableType) type).getDataType());
+                    continue;
+            }
+        }
+
+        return nestedTypes;
+    }
+
     private void qualifyNames() {
         this.qualifyNames(this.rootValue, new String[]{this.className});
     }
@@ -106,14 +156,19 @@ public class JsonSchema {
                 objectType.setContext(context);
                 for (Map.Entry<String, AbstractType> e : objectType) {
                     String[] newContext = Arrays.copyOf(context, context.length + 1);
-                    newContext[context.length] = e.getKey();
+                    newContext[context.length] = ObjectType.Case(e.getKey());
                     ObjectValue objectValue = (ObjectValue) value;
                     this.qualifyNames(objectValue.getValue(e.getKey()), newContext);
                 }
                 break;
             case OR:
+                OrType orType = (OrType) value.getType();
+                String[] newContext = Arrays.copyOf(context, context.length + 1);
+                newContext[context.length] = "OrType";
+                orType.setContext(newContext);
+
                 AbstractValue nestedValue = ((OrValue) value).getValue();
-                String[] newContext = Arrays.copyOf(context, context.length);
+                newContext = Arrays.copyOf(context, context.length);
                 if (nestedValue.getType().getKind() == AbstractType.Kind.ARRAY) {
                     newContext[newContext.length - 1] += "Arr";
                 }
@@ -141,14 +196,18 @@ public class JsonSchema {
                 objectType.setContext(context);
                 for (Map.Entry<String, AbstractType> e : objectType) {
                     String[] newContext = Arrays.copyOf(context, context.length + 1);
-                    newContext[context.length] = e.getKey();
+                    newContext[context.length] = ObjectType.Case(e.getKey());
                     qualifyNames(e.getValue(), newContext);
                 }
                 break;
             case OR:
                 OrType orType = (OrType) type;
+                String[] newContext = Arrays.copyOf(context, context.length + 1);
+                newContext[context.length] = "OrType";
+                orType.setContext(newContext);
+
                 for (AbstractType option : orType.getOptions()) {
-                    String[] newContext = Arrays.copyOf(context, context.length);
+                    newContext = Arrays.copyOf(context, context.length);
                     if (option.getKind() == AbstractType.Kind.ARRAY) {
                         newContext[newContext.length - 1] += "Arr";
                     }

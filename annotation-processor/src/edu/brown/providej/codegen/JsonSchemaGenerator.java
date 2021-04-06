@@ -5,6 +5,7 @@ import edu.brown.providej.modules.JsonSchema;
 import edu.brown.providej.modules.types.AbstractType;
 import edu.brown.providej.modules.types.ArrayType;
 import edu.brown.providej.modules.types.ObjectType;
+import edu.brown.providej.modules.types.OrType;
 
 import java.io.IOException;
 
@@ -22,6 +23,11 @@ public class JsonSchemaGenerator {
         for (ObjectType objectType : this.schema.getNestedTypes()) {
             ObjectTypeGenerator objectTypeGenerator = new ObjectTypeGenerator(objectType);
             builder.append(objectTypeGenerator.generateEntireClass());
+            builder.append("\n");
+        }
+        for (OrType orType : this.schema.getNestedOrTypes()) {
+            OrTypeGenerator orTypeGenerator = new OrTypeGenerator(orType);
+            builder.append(orTypeGenerator.generateOrClass());
             builder.append("\n");
         }
         return builder.toString();

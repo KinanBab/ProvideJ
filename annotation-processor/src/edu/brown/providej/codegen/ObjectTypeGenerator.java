@@ -4,7 +4,6 @@ import edu.brown.providej.modules.types.AbstractType;
 import edu.brown.providej.modules.types.ObjectType;
 import edu.brown.providej.modules.types.RuntimeType;
 
-import java.util.Arrays;
 import java.util.Map;
 
 public class ObjectTypeGenerator {

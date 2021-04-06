@@ -38,6 +38,10 @@ public class ObjectType extends AbstractType implements Iterable<Map.Entry<Strin
         this.context = Arrays.copyOf(context, context.length);
     }
 
+    public String getBaseName() {
+        return this.context[this.context.length - 1];
+    }
+
     public String getQualifiedName() {
         if (this.context == null) {
             return "null";
