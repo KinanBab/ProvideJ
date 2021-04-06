@@ -1,0 +1,10 @@
+{
+  "simple": [ "hello", null ],
+  "courses": [
+    {"department":  "cs", "name":  {"number":  100, "code": "cs", "note":  "good course"}},
+    {"department":  "math", "name":  {"number":  131, "code": "mh", "note":  null}}
+  ],
+  "simpleor": [ "bye", 10.2, false ],
+  "simple_nullable_or": [ "bye", null, 5, true],
+  "unifobj": [ 100, null, {"key1": 10, "key2":  "hello", "key3": []}, {"key2": null, "key3":  100, "key4":  true}]
+}

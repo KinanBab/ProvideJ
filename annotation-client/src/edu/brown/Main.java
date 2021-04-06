@@ -1,6 +1,7 @@
 package edu.brown;
 
 import edu.brown.providej.runtime.ProvideJUtil;
+import edu.brown.providej.runtime.types.Nullable;
 
 public class Main {
     public static void main(String[] args) {
@@ -32,12 +33,21 @@ public class Main {
             System.out.println("\t" + interest);
         }
         System.out.println("courses:");
-        for (Json3.Json3__Courses course : data3.getCourses()) {
+        for (Json3.Json3__courses course : data3.getCourses()) {
             System.out.println("\tname: " + course.getName() + ", grade: " + course.getGrade());
         }
 
         // Print all JSONs.
         System.out.println("");
+        System.out.println(ProvideJUtil.toJSON(Json1.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json2.DATA));
         System.out.println(ProvideJUtil.toJSON(Json3.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json4.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json5.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json6.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json7.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json8.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json9.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json10.DATA));
     }
 }
