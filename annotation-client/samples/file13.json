@@ -1,0 +1,7 @@
+{
+  "courses": [
+    { "course":  "cs1", "grade": 90, "year":  "-"},
+    { "course":  "cs1", "grade":  null, "year":  2017},
+    { "course":  "cs1", "grade":  100}
+  ]
+}

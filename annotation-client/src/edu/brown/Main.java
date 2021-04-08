@@ -1,7 +1,7 @@
+// Look at: http://www.cs.cmu.edu/~aldrich/papers/ecoop08.pdf
 package edu.brown;
 
 import edu.brown.providej.runtime.ProvideJUtil;
-import edu.brown.providej.runtime.types.Null;
 import edu.brown.providej.runtime.types.Nullable;
 
 public class Main {
@@ -64,5 +64,7 @@ public class Main {
         System.out.println(ProvideJUtil.toJSON(Json9.DATA));
         System.out.println(ProvideJUtil.toJSON(Json10.DATA));
         System.out.println(ProvideJUtil.toJSON(Json11.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json12.DATA));
+        System.out.println(ProvideJUtil.toJSON(Json13.DATA));
     }
 }
