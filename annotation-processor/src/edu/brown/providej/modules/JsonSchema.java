@@ -132,6 +132,9 @@ public class JsonSchema {
                 case NULLABLE:
                     queue.add(((NullableType) type).getDataType());
                     continue;
+                case OPTIONAL:
+                    queue.add(((OptionalType) type).getDataType());
+                    continue;
             }
         }
 
@@ -183,6 +186,12 @@ public class JsonSchema {
                     this.qualifyNames(nullableValue.getValue(), context);
                 }
                 break;
+            case OPTIONAL:
+                OptionalValue optionalValue = (OptionalValue) value;
+                if (optionalValue.hasValue()) {
+                    this.qualifyNames(optionalValue.getValue(), context);
+                }
+                break;
         }
     }
     public void qualifyNames(AbstractType type, String[] context) {
@@ -220,6 +229,10 @@ public class JsonSchema {
             case NULLABLE:
                 NullableType nullableType = (NullableType) type;
                 this.qualifyNames(nullableType.getDataType(), context);
+                break;
+            case OPTIONAL:
+                OptionalType optionalType = (OptionalType) type;
+                this.qualifyNames(optionalType.getDataType(), context);
                 break;
         }
     }

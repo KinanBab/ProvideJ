@@ -60,13 +60,25 @@ public abstract class AbstractType {
         ARRAY,
         RUNTIME_TYPE,
         NULLABLE,
-        OR
+        OR,
+        OPTIONAL
     }
 
     public static AbstractType unify(AbstractType t1, AbstractType t2) {
         // T + T ==> T
         if (t1.equals(t2)) {
             return t1;
+        }
+
+        // Unifying with optional is special: unified type remains optional with the inner data type unified.
+        // Optional<T1> + T2 ===> Optional<T1>          if T1 == T2,
+        //                        Optional<T1 + T2>     otherwise.
+        // Optional is flat: cannot have Optional<Optional>.
+        if (t1.getKind() == AbstractType.Kind.OPTIONAL) {
+            return OptionalType.unify((OptionalType) t1, t2);
+        }
+        if (t2.getKind() == AbstractType.Kind.OPTIONAL) {
+            return OptionalType.unify((OptionalType) t2, t1);
         }
 
         // Unifying with nullable is special: unified type remains nullable with the inner data type unified.

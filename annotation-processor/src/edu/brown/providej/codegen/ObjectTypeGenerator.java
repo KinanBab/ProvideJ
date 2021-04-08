@@ -93,6 +93,9 @@ public class ObjectTypeGenerator {
 
         // Define getters and setters.
         for (Map.Entry<String, AbstractType> e : this.objectType) {
+            if (e.getValue().getKind() == AbstractType.Kind.OPTIONAL) {
+                builder.append("if (this." + e.getKey() + ".isDefined()) {\n");
+            }
             builder.append("builder.append(\"\\\"" + e.getKey() + "\\\": \");\n");
             switch (e.getValue().getKind()) {
                 case OBJECT:
@@ -124,10 +127,14 @@ public class ObjectTypeGenerator {
                 case INT:
                 case BOOLEAN:
                 case NULLABLE:
+                case OPTIONAL:
                     builder.append("builder.append(this." + e.getKey() + " + \"\");\n");
                     break;
             }
             builder.append("builder.append(\", \");\n");
+            if (e.getValue().getKind() == AbstractType.Kind.OPTIONAL) {
+                builder.append("}\n");
+            }
         }
         if (this.objectType.size() > 0) {
             builder.append("builder.setLength(builder.length() - 2);\n");

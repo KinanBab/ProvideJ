@@ -37,6 +37,8 @@ public class ArrayType extends AbstractType {
     public String javaTypeConstructor() {
         if (this.dataType.getKind() == AbstractType.Kind.NULLABLE) {
             return "Nullable[]";
+        } else if (this.dataType.getKind() == AbstractType.Kind.OPTIONAL) {
+            return "edu.brown.providej.runtime.types.Optional[]";
         } else {
             return this.javaType();
         }

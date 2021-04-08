@@ -3,6 +3,7 @@ package edu.brown.providej.modules.types;
 import edu.brown.providej.modules.values.AbstractValue;
 import edu.brown.providej.modules.values.NullableValue;
 import edu.brown.providej.modules.values.ObjectValue;
+import edu.brown.providej.modules.values.OptionalValue;
 
 import java.util.Arrays;
 import java.util.Iterator;
@@ -109,12 +110,12 @@ public class ObjectType extends AbstractType implements Iterable<Map.Entry<Strin
             if (t2.fields.containsKey(field)) {
                 unified.addField(field, AbstractType.unify(t1.fields.get(field), t2.fields.get(field)));
             } else {
-                unified.addField(field, new NullableType(t1.fields.get(field)));
+                unified.addField(field, new OptionalType(t1.fields.get(field)));
             }
         }
         for (String field : t2.fields.keySet()) {
             if (!t1.fields.containsKey(field)) {
-                unified.addField(field, new NullableType(t2.fields.get(field)));
+                unified.addField(field, new OptionalType(t2.fields.get(field)));
             }
         }
         return unified;
@@ -142,12 +143,12 @@ public class ObjectType extends AbstractType implements Iterable<Map.Entry<Strin
         }
         for (Map.Entry<String, AbstractType> e : this.fields.entrySet()) {
             if (!objType.hasField(e.getKey())) {
-                if (e.getValue().getKind() != AbstractType.Kind.NULLABLE) {
+                if (e.getValue().getKind() != AbstractType.Kind.OPTIONAL) {
                     throw new IllegalArgumentException("Cannot populate field " + e.getKey() + " during transformation to " + this);
                 }
 
-                NullableType nullableType = (NullableType) e.getValue();
-                result.addValue(e.getKey(), new NullableValue(nullableType.getDataType()));
+                OptionalType optionalType = (OptionalType) e.getValue();
+                result.addValue(e.getKey(), new OptionalValue(optionalType.getDataType()));
             }
         }
         return result;
