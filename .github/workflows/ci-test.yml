@@ -1,0 +1,23 @@
+name: "All Tests and Build"
+
+on:
+  push:
+    branches: [ "*" ]
+  pull_request:
+    branches: [ "*" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - name: Information
+      run: |
+        javac --version
+        java --version
+
+    - name: Test
+      run: ./test.sh
