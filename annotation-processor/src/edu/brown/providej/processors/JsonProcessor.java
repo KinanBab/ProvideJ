@@ -21,11 +21,13 @@ import java.util.Set;
 
 @SupportedAnnotationTypes({"edu.brown.providej.annotations.JsonData", "edu.brown.providej.annotations.MultiJsonData"})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
+@SupportedOptions({"providej_path"})
 public class JsonProcessor extends AbstractProcessor {
     // State of the different JsonSchemas and annotations.
     private final Hashtable<String, JsonSchema> schemas;
     private Messager messager;
     private Filer filer;
+    private String path;
 
     // Constructor initializes an empty state.
     public JsonProcessor() {
@@ -40,6 +42,12 @@ public class JsonProcessor extends AbstractProcessor {
         super.init(processingEnv);
         this.messager = processingEnv.getMessager();
         this.filer = processingEnv.getFiler();
+        this.path = processingEnv.getOptions().get("providej_path");
+        if (this.path == null) {
+            this.path = "/home/bab/Documents/courses/CSCI2950X/";
+        } else if (!this.path.trim().endsWith("/")) {
+            this.path = this.path.trim() + "/";
+        }
     }
 
     // Entry point to annotation processing.
@@ -104,7 +112,7 @@ public class JsonProcessor extends AbstractProcessor {
         }
 
         // Parse the json schema.
-        JsonSchema jsonSchema = JsonSchema.parseSchema(this.messager, className, jsonDataAnnotation.data());
+        JsonSchema jsonSchema = JsonSchema.parseSchema(this.messager, className, this.path + jsonDataAnnotation.data());
         this.schemas.put(typeQualifiedName, jsonSchema);
 
         // Write the class file.

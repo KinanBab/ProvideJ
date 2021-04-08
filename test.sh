@@ -29,7 +29,7 @@ rm -rf out && mkdir out && mkdir out/json
 echo ""
 echo ""
 echo "Compiling..."
-javac -cp annotation-processor.jar -d out/ annotation-client/src/edu/brown/*
+javac -cp annotation-processor.jar -Aprovidej_path=$(pwd) -d out/ annotation-client/src/edu/brown/*
 
 # Run test.java dumping all the TypeProvided JSON into files under out/json/
 echo ""
