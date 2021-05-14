@@ -5,7 +5,6 @@ import edu.brown.providej.runtime.ProvideJUtil;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class Test {
     public static final Object[] OBJECTS = {

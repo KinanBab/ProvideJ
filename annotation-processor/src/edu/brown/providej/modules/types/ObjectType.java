@@ -1,14 +1,12 @@
 package edu.brown.providej.modules.types;
 
+import edu.brown.providej.modules.rowtypes.RowType;
 import edu.brown.providej.modules.values.AbstractValue;
 import edu.brown.providej.modules.values.NullableValue;
 import edu.brown.providej.modules.values.ObjectValue;
 import edu.brown.providej.modules.values.OptionalValue;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class ObjectType extends AbstractType implements Iterable<Map.Entry<String, AbstractType>> {
     public static String Case(String name) {
@@ -152,5 +150,14 @@ public class ObjectType extends AbstractType implements Iterable<Map.Entry<Strin
             }
         }
         return result;
+    }
+
+    @Override
+    public void matchRowTypes(HashSet<RowType> rowTypes) {
+        for (RowType rowType : rowTypes) {
+            if (rowType.accepts(this)) {
+                this.interfaces.add(rowType);
+            }
+        }
     }
 }

@@ -1,14 +1,14 @@
-package edu.brown.providej.modules;
+package edu.brown.providej.parsing;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import edu.brown.providej.modules.rowtypes.RowType;
 import edu.brown.providej.modules.types.*;
 import edu.brown.providej.modules.values.*;
 
 import javax.annotation.processing.Messager;
-import javax.tools.Diagnostic;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
@@ -239,7 +239,8 @@ public class JsonSchema {
 
 
     // Create schema for the given JSON file.
-    public static JsonSchema parseSchema(Messager messager, String className, String jsonFilePath) throws IOException {
+    public static JsonSchema parseSchema(Messager messager, String className, String jsonFilePath,
+                                         HashSet<RowType> rowTypes) throws IOException {
         File jsonFile = new File(jsonFilePath);
         JsonNode root = new ObjectMapper().readTree(jsonFile);
         // Create a schema.
@@ -247,6 +248,11 @@ public class JsonSchema {
         // Populate all needed types, and parse the root value.
         schema.rootValue = schema.parseJsonValue(root);
         schema.qualifyNames();
+        // Match all nested types to any interfaces they implement.
+        schema.rootValue.getType().matchRowTypes(rowTypes);
+        for (ObjectType type : schema.getNestedTypes()) {
+            type.matchRowTypes(rowTypes);
+        }
         // Return schema.
         return schema;
     }

@@ -1,5 +1,7 @@
 package edu.brown.providej.annotations;
 
+import edu.brown.providej.annotations.enums.Visibility;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -7,6 +9,10 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.PACKAGE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface MultiJsonData {
-    JsonData[] value();
+public @interface RowType {
+    String className();
+
+    Visibility visibility() default Visibility.PACAKGE;
+
+    String type();
 }

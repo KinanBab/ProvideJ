@@ -13,7 +13,13 @@
     @JsonData(className = "Json12", data = "annotation-client/samples/file12.json"),
     @JsonData(className = "Json13", data = "annotation-client/samples/file13.json"),
 })
+@RowTypes({
+    @RowType(className = "RName", type = "{ name: string, id: int }"),
+    @RowType(className = "RProgram", type = "{ program: { department: string, degree: string } }"),
+})
 package edu.brown;
 
 import edu.brown.providej.annotations.JsonData;
 import edu.brown.providej.annotations.MultiJsonData;
+import edu.brown.providej.annotations.RowType;
+import edu.brown.providej.annotations.RowTypes;

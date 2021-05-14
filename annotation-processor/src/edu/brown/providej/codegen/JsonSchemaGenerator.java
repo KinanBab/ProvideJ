@@ -1,13 +1,11 @@
 package edu.brown.providej.codegen;
 
 import edu.brown.providej.annotations.enums.Visibility;
-import edu.brown.providej.modules.JsonSchema;
+import edu.brown.providej.parsing.JsonSchema;
 import edu.brown.providej.modules.types.AbstractType;
 import edu.brown.providej.modules.types.ArrayType;
 import edu.brown.providej.modules.types.ObjectType;
 import edu.brown.providej.modules.types.OrType;
-
-import java.io.IOException;
 
 public class JsonSchemaGenerator {
     private final JsonSchema schema;
@@ -66,6 +64,7 @@ public class JsonSchemaGenerator {
         builder.append(visibility.toString());
         builder.append(" class ");
         builder.append(this.schema.getClassName());
+        builder.append(this.schema.getRootValue().getType().javaInterfacesImplemented());
         builder.append(" {\n");
 
         // Class content (data members, constructor, etc) if exists.

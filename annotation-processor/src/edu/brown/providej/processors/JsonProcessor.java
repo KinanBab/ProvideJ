@@ -2,9 +2,12 @@ package edu.brown.providej.processors;
 
 import edu.brown.providej.annotations.JsonData;
 import edu.brown.providej.annotations.MultiJsonData;
-import edu.brown.providej.annotations.enums.Visibility;
+import edu.brown.providej.annotations.RowType;
+import edu.brown.providej.annotations.RowTypes;
 import edu.brown.providej.codegen.JsonSchemaGenerator;
-import edu.brown.providej.modules.JsonSchema;
+import edu.brown.providej.codegen.RowTypeGenerator;
+import edu.brown.providej.parsing.JsonSchema;
+import edu.brown.providej.parsing.RowTypeParser;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -16,15 +19,20 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.annotation.Annotation;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Set;
 
-@SupportedAnnotationTypes({"edu.brown.providej.annotations.JsonData", "edu.brown.providej.annotations.MultiJsonData"})
+@SupportedAnnotationTypes({"edu.brown.providej.annotations.JsonData", "edu.brown.providej.annotations.MultiJsonData", "edu.brown.providej.annotations.RowType", "edu.brown.providej.annotations.RowTypes"})
 @SupportedSourceVersion(SourceVersion.RELEASE_11)
 @SupportedOptions({"providej_path"})
 public class JsonProcessor extends AbstractProcessor {
     // State of the different JsonSchemas and annotations.
     private final Hashtable<String, JsonSchema> schemas;
+    private final HashSet<edu.brown.providej.modules.rowtypes.RowType> rowTypes;
     private Messager messager;
     private Filer filer;
     private String path;
@@ -33,6 +41,7 @@ public class JsonProcessor extends AbstractProcessor {
     public JsonProcessor() {
         super();
         this.schemas = new Hashtable<>();
+        this.rowTypes = new HashSet<>();
     }
 
     // Initializes the processor with the processing environment, including APIs for reporting errors and creating
@@ -62,7 +71,12 @@ public class JsonProcessor extends AbstractProcessor {
     //              as well as type mirrors and compilation information.
     @Override
     public boolean process(Set<? extends TypeElement> annotations, RoundEnvironment roundEnv) {
+        ArrayList<Pair<JsonData>> jsonDataAnnotations = new ArrayList<>();
+        ArrayList<Pair<RowType>> rowTypeAnnotations = new ArrayList<>();
+
+        // Collect annotations according to their type.
         for (TypeElement annotation : annotations) {
+            String annotationName = annotation.getQualifiedName().toString();
             Set<? extends Element> annotatedElements = roundEnv.getElementsAnnotatedWith(annotation);
             for (Element e : annotatedElements) {
                 if (e.getKind() != ElementKind.PACKAGE) {
@@ -71,36 +85,80 @@ public class JsonProcessor extends AbstractProcessor {
                     continue;
                 }
 
-                try {
-                    this.provideTypes((PackageElement) e);
-                } catch (IOException io) {
-                    this.messager.printMessage(Diagnostic.Kind.ERROR, io.getMessage(), e);
-                    io.printStackTrace();
+                PackageElement p = (PackageElement) e;
+                // Look for JsonData annotations.
+                if (annotationName.equals(JsonData.class.getName())) {
+                    jsonDataAnnotations.add(new Pair<>(p, p.getAnnotation(JsonData.class)));
+                } else if (annotationName.equals(MultiJsonData.class.getName())) {
+                    for (JsonData a : p.getAnnotation(MultiJsonData.class).value()) {
+                        jsonDataAnnotations.add(new Pair<>(p, a));
+                    }
                 }
+                // Look for RowType annotations.
+                if (annotationName.equals(RowType.class.getName())) {
+                    rowTypeAnnotations.add(new Pair<>(p, p.getAnnotation(RowType.class)));
+                } else if (annotationName.equals(RowTypes.class.getName())) {
+                    for (RowType a : p.getAnnotation(RowTypes.class).value()) {
+                        rowTypeAnnotations.add(new Pair<>(p, a));
+                    }
+                }
+            }
+        }
+
+        // Process RowType annotations.
+        for (Pair<RowType> pair : rowTypeAnnotations) {
+            try {
+                this.provideRow(pair.annotation, pair.packageElement);
+            } catch (Exception e) {
+                this.messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage(), pair.packageElement);
+                e.printStackTrace();
+            }
+        }
+
+        // Process JsonData annotations.
+        for (Pair<JsonData> pair : jsonDataAnnotations) {
+            try {
+                this.provideType(pair.annotation, pair.packageElement);
+            } catch (Exception e) {
+                this.messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage(), pair.packageElement);
+                e.printStackTrace();
             }
         }
 
         return true;
     }
 
-    // Create a schema for the given package definition and associate JsonData annotation.
-    // Store the schema in the state as well as generate a java class for it.
-    private void provideTypes(PackageElement packageElement) throws IOException {
+    // Parse RowType from annotation and create an interface for it.
+    // Store the rowtype in the state.
+    private void provideRow(RowType rowTypeAnnotation, PackageElement packageElement) throws IOException {
         String packageName = packageElement.getQualifiedName().toString();
-
-        JsonData jsonDataAnnotation = packageElement.getAnnotation(JsonData.class);
-        if (jsonDataAnnotation != null) {
-            this.provideType(packageName, jsonDataAnnotation, packageElement);
+        String className = rowTypeAnnotation.className();
+        if (!className.matches("[A-Z][a-zA-Z0-9_]*")) {
+            this.messager.printMessage(Diagnostic.Kind.ERROR,
+                    "ClassName does not satisfy java's naming requirements",
+                    packageElement);
+            return;
         }
 
-        MultiJsonData multiJsonDataAnnotation = packageElement.getAnnotation(MultiJsonData.class);
-        if (multiJsonDataAnnotation != null) {
-            for (JsonData nestedJsonDataAnnotation : multiJsonDataAnnotation.value()) {
-                this.provideType(packageName, nestedJsonDataAnnotation, packageElement);
-            }
+        // Parse the row type.
+        try {
+            RowTypeParser parser = new RowTypeParser(className, this.messager);
+            edu.brown.providej.modules.rowtypes.RowType rowType = parser.parseRowType(rowTypeAnnotation.type());
+            this.rowTypes.addAll(rowType.nestedTypes());
+
+            // Write the class file.
+            RowTypeGenerator generator = new RowTypeGenerator(rowType, rowTypeAnnotation.visibility());
+            String content = "package " + packageName + ";\n\n" + generator.generateEntireClass();
+            this.writeClassFile(packageName, className, content);
+        } catch (ParseException e) {
+            this.messager.printMessage(Diagnostic.Kind.ERROR, e.getMessage(), packageElement);
         }
     }
-    private void provideType(String packageName, JsonData jsonDataAnnotation, PackageElement packageElement) throws IOException {
+
+    // Create a schema for the given package definition and associate JsonData annotation.
+    // Store the schema in the state as well as generate a java class for it.
+    private void provideType(JsonData jsonDataAnnotation, PackageElement packageElement) throws IOException {
+        String packageName = packageElement.getQualifiedName().toString();
         String className = jsonDataAnnotation.className();
         String typeQualifiedName = packageName + "." + className;
 
@@ -112,22 +170,33 @@ public class JsonProcessor extends AbstractProcessor {
         }
 
         // Parse the json schema.
-        JsonSchema jsonSchema = JsonSchema.parseSchema(this.messager, className, this.path + jsonDataAnnotation.data());
+        String dataPath = this.path + jsonDataAnnotation.data();
+        JsonSchema jsonSchema = JsonSchema.parseSchema(this.messager, className, dataPath, this.rowTypes);
         this.schemas.put(typeQualifiedName, jsonSchema);
 
         // Write the class file.
-        this.writeClassFile(packageName, jsonDataAnnotation.visibility(), jsonSchema);
+        JsonSchemaGenerator generator = new JsonSchemaGenerator(jsonSchema);
+        String content = generator.generateJavaClass(packageName, jsonDataAnnotation.visibility());
+        this.writeClassFile(packageName, className, content);
     }
 
     // Write a generated .java file containing the a provided type / class.
-    private void writeClassFile(String packageName, Visibility classVisibility, JsonSchema jsonSchema) throws IOException {
+    private void writeClassFile(String packageName, String className, String content) throws IOException {
         // Write file.
-        JavaFileObject genFile =
-                this.filer.createSourceFile(packageName + "." + jsonSchema.getClassName());
-
-        JsonSchemaGenerator generator = new JsonSchemaGenerator(jsonSchema);
+        JavaFileObject genFile =  this.filer.createSourceFile(packageName + "." + className);
         PrintWriter out = new PrintWriter(genFile.openWriter());
-        out.println(generator.generateJavaClass(packageName, classVisibility));
+        out.println(content);
         out.close();
+    }
+
+    // Helper class
+    private static class Pair<T extends Annotation> {
+        public PackageElement packageElement;
+        public T annotation;
+
+        public Pair(PackageElement packageElement, T annotation) {
+            this.packageElement = packageElement;
+            this.annotation = annotation;
+        }
     }
 }

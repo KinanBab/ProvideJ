@@ -5,6 +5,23 @@ import edu.brown.providej.runtime.ProvideJUtil;
 import edu.brown.providej.runtime.types.Nullable;
 
 public class Main {
+    public static void printRowType1(RName rname) {
+        System.out.println("id: " + rname.getId());
+        System.out.println("name: " + rname.getName());
+        System.out.println("tostring: " + rname);
+        System.out.println("");
+    }
+
+    public static void printRowType2(RProgram rprogram) {
+        System.out.println("program:");
+        RProgram.RProgram__program nested = rprogram.getProgram();
+        System.out.println("\tdegree:" + nested.getDegree());
+        System.out.println("\tdepartment:" + nested.getDepartment());
+        System.out.println("\ttostring:" + nested);
+        System.out.println("tostring:" + rprogram);
+        System.out.println("");
+    }
+
     public static void main(String[] args) {
         // samples/data1.json
         Json1 data1 = Json1.DATA;
@@ -66,5 +83,14 @@ public class Main {
         System.out.println(ProvideJUtil.toJSON(Json11.DATA));
         System.out.println(ProvideJUtil.toJSON(Json12.DATA));
         System.out.println(ProvideJUtil.toJSON(Json13.DATA));
+
+        System.out.println("");
+        System.out.println("");
+        System.out.println("Row types-------------");
+        System.out.println("");
+        printRowType1(Json1.DATA);
+        printRowType1(Json2.DATA);
+        printRowType2(Json2.DATA);
+        printRowType2(Json13.DATA);
     }
 }

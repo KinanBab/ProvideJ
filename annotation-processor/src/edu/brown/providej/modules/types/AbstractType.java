@@ -1,15 +1,19 @@
 package edu.brown.providej.modules.types;
 
+import edu.brown.providej.modules.rowtypes.RowType;
 import edu.brown.providej.modules.values.AbstractValue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 public abstract class AbstractType {
     // Use this (instead of instanceof) for specialization.
     private final Kind kind;
+    protected final ArrayList<RowType> interfaces;
 
     protected AbstractType(Kind kind) {
         this.kind = kind;
+        this.interfaces = new ArrayList<>();
     }
 
     // Getters / setters.
@@ -35,6 +39,20 @@ public abstract class AbstractType {
     public abstract String javaType();
     public String javaRefType() {
         return this.javaType();
+    }
+
+    // The interfaces this type implements.
+    public String javaInterfacesImplemented() {
+        if (this.interfaces.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder(" implements ");
+        for (RowType rt : this.interfaces) {
+            builder.append(rt.getQualifiedName() + ", ");
+        }
+        builder.setLength(builder.length() - 2);
+        return builder.toString();
     }
 
     // Equality with other abstract types.
@@ -82,7 +100,7 @@ public abstract class AbstractType {
         }
 
         // Unifying with nullable is special: unified type remains nullable with the inner data type unified.
-        // Nullable<T1> + T2 ===> Nullable<T1>          if T1 == T2,,
+        // Nullable<T1> + T2 ===> Nullable<T1>          if T1 == T2,
         //                        Nullable<T1>          if T2 == Null,
         //                        Nullable<T1 + T2>     otherwise.
         if (t1.getKind() == AbstractType.Kind.NULLABLE) {
@@ -121,4 +139,6 @@ public abstract class AbstractType {
                 throw new IllegalStateException("AbstractType.unify: This should not be reachable!");
         }
     }
+
+    public void matchRowTypes(HashSet<RowType> rowTypes) { }
 }

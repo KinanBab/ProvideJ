@@ -7,6 +7,6 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.PACKAGE)
 @Retention(RetentionPolicy.SOURCE)
-public @interface MultiJsonData {
-    JsonData[] value();
+public @interface RowTypes {
+    RowType[] value();
 }

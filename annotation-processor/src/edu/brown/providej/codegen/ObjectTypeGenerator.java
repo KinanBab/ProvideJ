@@ -170,6 +170,7 @@ public class ObjectTypeGenerator {
         StringBuilder builder = new StringBuilder();
         builder.append("public static class ");
         builder.append(this.objectType.javaType());
+        builder.append(this.objectType.javaInterfacesImplemented());
         builder.append(" {\n");
         builder.append(this.generateClassContent());
         builder.append("}\n");
